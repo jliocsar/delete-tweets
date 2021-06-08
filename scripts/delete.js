@@ -18,30 +18,28 @@ const twit = new Twit({
   strictSSL: true,
 })
 
-const deleteTweet = tweet => {
-  const params = { id: tweet.id_str }
-
-  twit.post('statuses/destroy/:id', params, (err, deletedTweet, _) => {
-    if (err) {
-      throw new Error(err)
-    }
-
-    console.log(`Deleting tweet ${deletedTweet.id}`)
-  })
+const ENDPOINTS = {
+  GET: 'statuses/user_timeline',
+  DELETE: 'statuses/destroy/:id',
 }
 
-const wipeTwitter = async () => {
-  const params = { screen_name: SCREEN_NAME, count: DELETE_COUNT }
+const deleteTweet = async ({ id_str: id }) => {
+  console.log('Deleting tweet', id)
 
-  twit.get('statuses/user_timeline', params, (err, tweets, _) => {
-    if (err) {
-      throw new Error(err)
-    }
+  await twit.post(ENDPOINTS.DELETE, { id })
 
-    tweets.map(deleteTweet)
-  })
+  console.log('Deleted tweet', id)
 }
 
 ;(async () => {
-  await wipeTwitter()
+  const { data: tweets } = await twit.get(ENDPOINTS.GET, {
+    screen_name: SCREEN_NAME,
+    count: Number(DELETE_COUNT),
+  })
+
+  if (!tweets.length) {
+    console.log('No tweets found 😕')
+  }
+
+  await Promise.all(tweets.map(deleteTweet))
 })()
